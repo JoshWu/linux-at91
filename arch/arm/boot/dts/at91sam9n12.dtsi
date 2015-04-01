@@ -52,20 +52,14 @@
 
 	clocks {
 		adc_op_clk: adc_op_clk{
-			compatible = "fixed-clock";
-			#clock-cells = <0>;
 			clock-frequency = <1000000>;
 		};
 
 		slow_xtal: slow_xtal {
-			compatible = "fixed-clock";
-			#clock-cells = <0>;
 			clock-frequency = <0>;
 		};
 
 		main_xtal: main_xtal {
-			compatible = "fixed-clock";
-			#clock-cells = <0>;
 			clock-frequency = <0>;
 		};
 	};
