@@ -58,7 +58,6 @@
 		regulator-name = "backlight-power-supply";
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
-		status = "disabled";
 	};
 
 	panel_reg: panel_regulator {
@@ -66,7 +65,6 @@
 		regulator-name = "panel-power-supply";
 		regulator-min-microvolt = <3300000>;
 		regulator-max-microvolt = <3300000>;
-		status = "disabled";
 	};
 
 	backlight: backlight {
@@ -75,7 +73,6 @@
 		brightness-levels = <0 4 8 16 32 64 128 255>;
 		default-brightness-level = <6>;
 		power-supply = <&bl_reg>;
-		status = "disabled";
 	};
 
 	panel: panel {
@@ -84,7 +81,6 @@
 		power-supply = <&panel_reg>;
 		#address-cells = <1>;
 		#size-cells = <0>;
-		status = "disabled";
 
 		port@0 {
 			#address-cells = <1>;
