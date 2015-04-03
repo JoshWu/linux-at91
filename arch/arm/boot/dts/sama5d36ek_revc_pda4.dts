@@ -11,6 +11,8 @@
 #include "sama5d36.dtsi"
 #include "sama5d3xmb.dtsi"
 #include "sama5d3xmb_hdmi.dtsi"
+/* conflicts with "d3" led and revc_audio */
+/* #include "sama5d3xmb_isi_sensors.dtsi" */
 #include "sama5d3xmb_revc_audio.dtsi"
 #include "sama5d3xdm_pda4.dtsi"
 
