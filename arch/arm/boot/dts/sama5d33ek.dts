@@ -38,6 +38,14 @@
 		};
 	};
 
+	leds {
+		d3 {
+			label = "d3";
+			gpios = <&pioE 24 GPIO_ACTIVE_HIGH>;
+			status = "disabled";
+		};
+	};
+
 	sound {
 		status = "okay";
 	};
