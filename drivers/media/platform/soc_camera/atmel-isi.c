@@ -40,6 +40,36 @@
 #define pixfmtstr(x) (x) & 0xff, ((x) >> 8) & 0xff, ((x) >> 16) & 0xff, \
 	((x) >> 24) & 0xff
 
+static char *mbus_fmt_string(u32 code)
+{
+	switch (code) {
+	case MEDIA_BUS_FMT_Y8_1X8:
+		return "MEDIA_BUS_FMT_Y8_1X8";
+	case MEDIA_BUS_FMT_Y10_1X10:
+		return "MEDIA_BUS_FMT_Y10_1X10";
+	case MEDIA_BUS_FMT_Y12_1X12:
+		return "MEDIA_BUS_FMT_Y12_1X12";
+	case MEDIA_BUS_FMT_SGRBG12_1X12:
+		return "MEDIA_BUS_FMT_SGRBG12_1X12";
+	case MEDIA_BUS_FMT_SGRBG10_1X10:
+		return "MEDIA_BUS_FMT_SGRBG10_1X10";
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+		return "MEDIA_BUS_FMT_UYVY8_2X8";
+	case MEDIA_BUS_FMT_VYUY8_2X8:
+		return "MEDIA_BUS_FMT_VYUY8_2X8";
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+		return "MEDIA_BUS_FMT_YUYV8_2X8";
+	case MEDIA_BUS_FMT_YVYU8_2X8:
+		return "MEDIA_BUS_FMT_YVYU8_2X8";
+	case MEDIA_BUS_FMT_RGB565_2X8_LE:
+		return "MEDIA_BUS_FMT_RGB565_2X8_LE";
+	case MEDIA_BUS_FMT_RGB565_2X8_BE:
+		return "MEDIA_BUS_FMT_RGB565_2X8_BE";
+	default:
+		return "Unkown MEDIA_BUS_FMT";
+	}
+}
+
 /* Frame buffer descriptor */
 struct fbd {
 	/* Physical address of the frame buffer */
@@ -541,8 +571,8 @@ static int isi_camera_set_fmt(struct soc_camera_device *icd,
 
 	xlate = soc_camera_xlate_by_fourcc(icd, pix->pixelformat);
 	if (!xlate) {
-		dev_warn(icd->parent, "Format %x not found\n",
-			 pix->pixelformat);
+		dev_warn(icd->parent, "set_fmt: Format %c%c%c%c(%x) not found\n",
+			 pixfmtstr(pix->pixelformat), pix->pixelformat);
 		return -EINVAL;
 	}
 
@@ -550,8 +580,8 @@ static int isi_camera_set_fmt(struct soc_camera_device *icd,
 	if (!is_supported(icd, xlate->host_fmt))
 		return -EINVAL;
 
-	dev_dbg(icd->parent, "Plan to set format %dx%d\n",
-			pix->width, pix->height);
+	dev_dbg(icd->parent, "Plan to set resolution: %dx%d, sensor format: %s, isi output format: %c%c%c%c\n",
+			pix->width, pix->height, mbus_fmt_string(xlate->code), pixfmtstr(xlate->host_fmt->fourcc));
 
 	mf->width	= pix->width;
 	mf->height	= pix->height;
@@ -572,8 +602,11 @@ static int isi_camera_set_fmt(struct soc_camera_device *icd,
 	pix->colorspace		= mf->colorspace;
 	icd->current_fmt	= xlate;
 
-	dev_dbg(icd->parent, "Finally set format %dx%d\n",
-		pix->width, pix->height);
+	dev_dbg(icd->parent, "Finally output resolution: %dx%d, sensor output resolution: %dx%d, isi output format: %c%c%c%c, sensor output format: %s\n",
+		pix->width, pix->height,
+		mf->width, mf->height,
+		pixfmtstr(xlate->host_fmt->fourcc),
+		mbus_fmt_string(mf->code));
 
 	return ret;
 }
@@ -594,7 +627,8 @@ static int isi_camera_try_fmt(struct soc_camera_device *icd,
 
 	xlate = soc_camera_xlate_by_fourcc(icd, pixfmt);
 	if (pixfmt && !xlate) {
-		dev_warn(icd->parent, "Format %x not found\n", pixfmt);
+		dev_warn(icd->parent, "try_fmt: Format %c%c%c%c(%x) not found\n",
+			 pixfmtstr(pixfmt), pixfmt);
 		return -EINVAL;
 	}
 
@@ -716,7 +750,7 @@ static int isi_camera_get_formats(struct soc_camera_device *icd,
 	fmt = soc_mbus_get_fmtdesc(code.code);
 	if (!fmt) {
 		dev_err(icd->parent,
-			"Invalid format code #%u: %d\n", idx, code.code);
+			"Invalid format code #%u: %s\n", idx, mbus_fmt_string(code.code));
 		return 0;
 	}
 
@@ -737,18 +771,14 @@ static int isi_camera_get_formats(struct soc_camera_device *icd,
 		if (xlate) {
 			xlate->host_fmt	= &isi_camera_formats[0];
 			xlate->code	= code.code;
+			dev_dbg(icd->parent, "Providing format %s (%s)\n",
+				xlate->host_fmt->name, mbus_fmt_string(xlate->code));
 			xlate++;
-			dev_dbg(icd->parent, "Providing format %s using code %d\n",
-				isi_camera_formats[0].name, code.code);
 		}
 		break;
 	default:
 		if (!isi_camera_packing_supported(fmt))
 			return 0;
-		if (xlate)
-			dev_dbg(icd->parent,
-				"Providing format %s in pass-through mode\n",
-				fmt->name);
 	}
 
 	/* Generic pass-through */
@@ -756,6 +786,8 @@ static int isi_camera_get_formats(struct soc_camera_device *icd,
 	if (xlate) {
 		xlate->host_fmt	= fmt;
 		xlate->code	= code.code;
+		dev_dbg(icd->parent, "Providing format %s (%s) in pass-through mode\n",
+				xlate->host_fmt->name, mbus_fmt_string(xlate->code));
 		xlate++;
 	}
 
