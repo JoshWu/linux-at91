@@ -920,7 +920,6 @@ static int atmel_isi_probe(struct platform_device *pdev)
 	struct atmel_isi *isi;
 	struct resource *regs;
 	int ret, i;
-	struct device *dev = &pdev->dev;
 	struct soc_camera_host *soc_host;
 	struct isi_platform_data *pdata;
 
