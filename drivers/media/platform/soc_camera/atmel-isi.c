@@ -505,7 +505,7 @@ static int isi_camera_set_fmt(struct soc_camera_device *icd,
 	struct v4l2_mbus_framefmt *mf = &format.format;
 	int ret;
 
-	/* check with atmel-isi support format, if not support use UYVY */
+	/* check with atmel-isi support format, if not support use YUYV */
 	if (!is_supported(icd, pix->pixelformat))
 		pix->pixelformat = V4L2_PIX_FMT_YUYV;
 
@@ -558,7 +558,7 @@ static int isi_camera_try_fmt(struct soc_camera_device *icd,
 	u32 pixfmt = pix->pixelformat;
 	int ret;
 
-	/* check with atmel-isi support format, if not support use UYVY */
+	/* check with atmel-isi support format, if not support use YUYV */
 	if (!is_supported(icd, pix->pixelformat))
 		pix->pixelformat = V4L2_PIX_FMT_YUYV;
 
