@@ -493,6 +493,36 @@ static int isi_camera_init_videobuf(struct vb2_queue *q,
 	return vb2_queue_init(q);
 }
 
+static int try_fmt(struct soc_camera_device *icd,
+		   struct v4l2_format *f,
+		   struct v4l2_subdev_format *format)
+{
+	struct v4l2_pix_format *pix = &f->fmt.pix;
+	const struct soc_camera_format_xlate *xlate;
+
+	struct v4l2_subdev *sd = soc_camera_to_subdev(icd);
+	struct v4l2_mbus_framefmt *mf = &format->format;
+	int ret;
+
+	/* check with atmel-isi support format, if not support use YUYV */
+	if (!is_supported(icd, pix->pixelformat))
+		pix->pixelformat = V4L2_PIX_FMT_YUYV;
+
+	xlate = soc_camera_xlate_by_fourcc(icd, pix->pixelformat);
+	if (!xlate) {
+		dev_warn(icd->parent, "Format %x not found\n",
+			 pix->pixelformat);
+		return -EINVAL;
+	}
+
+	ret = v4l2_subdev_call(sd, pad, set_fmt, NULL, format);
+	if (ret < 0)
+		return ret;
+
+	if (mf->code != xlate->code)
+		return -EINVAL;
+}
+
 static int isi_camera_set_fmt(struct soc_camera_device *icd,
 			      struct v4l2_format *f)
 {
