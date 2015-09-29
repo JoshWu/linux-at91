@@ -254,7 +254,8 @@ static irqreturn_t atmel_isi_handle_streaming(struct atmel_isi *isi)
 		/* start next dma frame. */
 		isi->active = list_entry(isi->video_buffer_list.next,
 					struct frame_buffer, list);
-		start_dma(isi, isi->active);
+
+		(*isi->hw_ops->start_dma)(isi, isi->active);
 	}
 	return IRQ_HANDLED;
 }
@@ -404,7 +405,7 @@ static int buffer_prepare(struct vb2_buffer *vb)
 			list_del_init(&desc->list);
 
 			/* Initialize the dma descriptor */
-			isi_hw_init_dma_desc(desc->p_fbd, vb2_dma_contig_plane_dma_addr(vb, 0), 0);
+			(*isi->hw_ops->init_dma_desc)(desc->p_fbd, vb2_dma_contig_plane_dma_addr(vb, 0), 0);
 
 			buf->p_dma_desc = desc;
 		}
@@ -466,7 +467,7 @@ static void buffer_queue(struct vb2_buffer *vb)
 	if (isi->active == NULL) {
 		isi->active = buf;
 		if (vb2_is_streaming(vb->vb2_queue))
-			start_dma(isi, buf);
+			(*isi->hw_ops->start_dma)(isi, buf);
 	}
 	spin_unlock_irqrestore(&isi->lock, flags);
 }
@@ -531,7 +532,7 @@ static int start_streaming(struct vb2_queue *vq, unsigned int count)
 		/* Enable irq: cxfr for the codec path, pxfr for the preview path */
 		isi_writel(isi, ISI_INTEN,
 			ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
-		start_dma(isi, isi->active);
+		(*isi->hw_ops->start_dma)(isi, isi->active);
 	}
 	spin_unlock_irq(&isi->lock);
 
@@ -1099,7 +1100,7 @@ static int atmel_isi_probe(struct platform_device *pdev)
 		goto err_req_irq;
 	}
 
-	ret = devm_request_irq(&pdev->dev, irq, isi_interrupt, 0, "isi", isi);
+	ret = devm_request_irq(&pdev->dev, irq, isi->hw_ops->interrupt, 0, "isi", isi);
 	if (ret) {
 		dev_err(&pdev->dev, "Unable to request irq %d\n", irq);
 		goto err_req_irq;
