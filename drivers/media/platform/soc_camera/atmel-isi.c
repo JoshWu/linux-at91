@@ -47,9 +47,9 @@ struct fbd {
 	u32 next_fbd_address;
 };
 
-static void set_dma_ctrl(struct fbd *fb_desc, u32 ctrl)
+static void isi_hw_set_dma_ctrl(struct fbd *fb_desc)
 {
-	fb_desc->dma_ctrl = ctrl;
+	fb_desc->dma_ctrl = ISI_DMA_CTRL_WB;
 }
 
 struct isi_dma_desc {
@@ -391,7 +391,7 @@ static int buffer_prepare(struct vb2_buffer *vb)
 			desc->p_fbd->fb_address =
 					vb2_dma_contig_plane_dma_addr(vb, 0);
 			desc->p_fbd->next_fbd_address = 0;
-			set_dma_ctrl(desc->p_fbd, ISI_DMA_CTRL_WB);
+			isi_hw_set_dma_ctrl(desc->p_fbd);
 
 			buf->p_dma_desc = desc;
 		}
