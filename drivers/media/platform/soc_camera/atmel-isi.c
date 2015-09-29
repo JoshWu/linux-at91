@@ -435,7 +435,7 @@ static void buffer_queue(struct vb2_buffer *vb)
 	unsigned long flags = 0;
 
 	spin_lock_irqsave(&isi->lock, flags);
-	list_add_tail(&buf->list, &isi->video_buffer_list);
+	list_add(&buf->list, &isi->video_buffer_list);
 
 	if (isi->active == NULL) {
 		isi->active = buf;
