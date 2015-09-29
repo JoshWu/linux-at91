@@ -414,9 +414,6 @@ static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer)
 	u32 ctrl, cfg1;
 
 	cfg1 = isi_readl(isi, ISI_CFG1);
-	/* Enable irq: cxfr for the codec path, pxfr for the preview path */
-	isi_writel(isi, ISI_INTEN,
-			ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
 
 	/* Check if already in a frame */
 	if (!isi->enable_preview_path) {
@@ -523,8 +520,12 @@ static int start_streaming(struct vb2_queue *vq, unsigned int count)
 	/* Clear any pending interrupt */
 	isi_readl(isi, ISI_STATUS);
 
-	if (count)
+	if (count) {
+		/* Enable irq: cxfr for the codec path, pxfr for the preview path */
+		isi_writel(isi, ISI_INTEN,
+			ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
 		start_dma(isi, isi->active);
+	}
 	spin_unlock_irq(&isi->lock);
 
 	return 0;
