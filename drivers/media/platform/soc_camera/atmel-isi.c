@@ -14,6 +14,7 @@
 #include <linux/clk.h>
 #include <linux/completion.h>
 #include <linux/delay.h>
+#include <linux/of_device.h>
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -105,6 +106,7 @@ struct atmel_isi {
 	struct frame_buffer		*active;
 
 	struct soc_camera_host		soc_host;
+	struct at91_camera_hw_ops	*hw_ops;
 };
 
 static void isi_writel(struct atmel_isi *isi, u32 reg, u32 val)
@@ -115,6 +117,14 @@ static u32 isi_readl(struct atmel_isi *isi, u32 reg)
 {
 	return readl(isi->regs + reg);
 }
+
+struct at91_camera_hw_ops {
+	void (*start_dma)(struct atmel_isi *isi, struct frame_buffer *buffer);
+	int (*start_streaming)(struct vb2_queue *vq, unsigned int count);
+	void (*stop_streaming)(struct vb2_queue *vq);
+	irqreturn_t (*interrupt)(int irq, void *dev_id);
+	void (*init_dma_desc)(union fbd *p_fdb, u32 fb_addr, u32 next_fbd_addr);
+};
 
 static u32 setup_cfg2_yuv_swap(struct atmel_isi *isi,
 		const struct soc_camera_format_xlate *xlate)
@@ -1018,6 +1028,7 @@ static int atmel_isi_parse_dt(struct atmel_isi *isi,
 	return 0;
 }
 
+static const struct of_device_id atmel_isi_of_match[];
 static int atmel_isi_probe(struct platform_device *pdev)
 {
 	unsigned int irq;
@@ -1039,6 +1050,9 @@ static int atmel_isi_probe(struct platform_device *pdev)
 	ret = atmel_isi_parse_dt(isi, pdev);
 	if (ret)
 		return ret;
+
+	isi->hw_ops = (struct at91_camera_hw_ops *)
+		of_match_device(atmel_isi_of_match, &pdev->dev)->data;
 
 	isi->active = NULL;
 	spin_lock_init(&isi->lock);
@@ -1144,13 +1158,21 @@ static int atmel_isi_runtime_resume(struct device *dev)
 }
 #endif /* CONFIG_PM */
 
+static struct at91_camera_hw_ops at91sam9g45_ops = {
+	.start_streaming = start_streaming,
+	.stop_streaming = stop_streaming,
+	.start_dma = start_dma,
+	.interrupt = isi_interrupt,
+	.init_dma_desc = isi_hw_init_dma_desc,
+};
+
 static const struct dev_pm_ops atmel_isi_dev_pm_ops = {
 	SET_RUNTIME_PM_OPS(atmel_isi_runtime_suspend,
 				atmel_isi_runtime_resume, NULL)
 };
 
 static const struct of_device_id atmel_isi_of_match[] = {
-	{ .compatible = "atmel,at91sam9g45-isi" },
+	{ .compatible = "atmel,at91sam9g45-isi", .data = &at91sam9g45_ops },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, atmel_isi_of_match);
