@@ -63,11 +63,6 @@ union fbd {
 	struct fbd_view fbd_isc;
 };
 
-static void isi_hw_set_dma_ctrl(struct fbd_isi_v2 *fb_desc)
-{
-	fb_desc->dma_ctrl = ISI_DMA_CTRL_WB;
-}
-
 struct isi_dma_desc {
 	struct list_head list;
 	union fbd *p_fbd;
@@ -367,7 +362,7 @@ static void isi_hw_init_dma_desc(union fbd *p_fdb, u32 fb_addr, u32 next_fbd_add
 	struct fbd_isi_v2 *p = &(p_fdb->fbd_isi);
 	p->fb_address = fb_addr;
 	p->next_fbd_address = next_fbd_addr;
-	isi_hw_set_dma_ctrl(p);
+	p->dma_ctrl = ISI_DMA_CTRL_WB;
 }
 
 static int buffer_prepare(struct vb2_buffer *vb)
