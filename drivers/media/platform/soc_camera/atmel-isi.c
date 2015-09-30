@@ -170,10 +170,18 @@ static u32 setup_cfg2_yuv_swap(struct atmel_isi *isi,
 	return cfg2_yuv_swap;
 }
 
+static bool is_output_rgb(const struct soc_mbus_pixelfmt *host_fmt)
+{
+	return host_fmt->fourcc == V4L2_PIX_FMT_RGB565 ||
+			host_fmt->fourcc == V4L2_PIX_FMT_RGB32;
+}
+
 static void configure_geometry(struct atmel_isi *isi, u32 width,
 		u32 height, const struct soc_camera_format_xlate *xlate)
 {
 	u32 cfg2, psize;
+
+	isi->enable_preview_path = is_output_rgb(xlate->host_fmt);
 
 	/* According to sensor's output format to set cfg2 */
 	switch (xlate->code) {
@@ -229,12 +237,6 @@ static bool is_supported(struct soc_camera_device *icd,
 	default:
 		return false;
 	}
-}
-
-static bool is_output_rgb(const struct soc_mbus_pixelfmt *host_fmt)
-{
-	return host_fmt->fourcc == V4L2_PIX_FMT_RGB565 ||
-			host_fmt->fourcc == V4L2_PIX_FMT_RGB32;
 }
 
 static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer);
@@ -508,8 +510,6 @@ static int start_streaming(struct vb2_queue *vq, unsigned int count)
 	struct soc_camera_host *ici = to_soc_camera_host(icd->parent);
 	struct atmel_isi *isi = ici->priv;
 	int ret;
-
-	isi->enable_preview_path = is_output_rgb(icd->current_fmt->host_fmt);
 
 	pm_runtime_get_sync(ici->v4l2_dev.dev);
 
