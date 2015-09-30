@@ -121,6 +121,7 @@ static u32 isi_readl(struct atmel_isi *isi, u32 reg)
 struct at91_camera_hw_ops {
 	void (*start_dma)(struct atmel_isi *isi, struct frame_buffer *buffer, bool enable_irq);
 	void (*hw_initialize)(struct atmel_isi *isi);
+	void (*hw_configure)(struct atmel_isi *isi, u32 width, u32 height, const struct soc_camera_format_xlate *xlate);
 	void (*hw_uninitialize)(struct atmel_isi *isi);
 	irqreturn_t (*interrupt)(int irq, void *dev_id);
 	void (*init_dma_desc)(union fbd *p_fdb, u32 fb_addr, u32 next_fbd_addr);
@@ -553,7 +554,7 @@ static int start_streaming(struct vb2_queue *vq, unsigned int count)
 
 	(*isi->hw_ops->hw_initialize)(isi);
 
-	configure_geometry(isi, icd->user_width, icd->user_height,
+	(*isi->hw_ops->hw_configure)(isi, icd->user_width, icd->user_height,
 				icd->current_fmt);
 
 	spin_lock_irq(&isi->lock);
@@ -1175,6 +1176,7 @@ static int atmel_isi_runtime_resume(struct device *dev)
 static struct at91_camera_hw_ops at91sam9g45_ops = {
 	.hw_initialize = isi_hw_initialize,
 	.hw_uninitialize = isi_hw_uninitialize,
+	.hw_configure = configure_geometry,
 	.start_dma = start_dma,
 	.interrupt = isi_interrupt,
 	.init_dma_desc = isi_hw_init_dma_desc,
