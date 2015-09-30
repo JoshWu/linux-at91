@@ -164,6 +164,12 @@ static u32 setup_cfg2_yuv_swap(struct atmel_isi *isi,
 	return ISI_CFG2_YCC_SWAP_DEFAULT;
 }
 
+static bool is_output_rgb(const struct soc_mbus_pixelfmt *host_fmt)
+{
+	return host_fmt->fourcc == V4L2_PIX_FMT_RGB565 ||
+			host_fmt->fourcc == V4L2_PIX_FMT_RGB32;
+}
+
 static void configure_geometry(struct atmel_isi *isi, u32 width,
 		u32 height, const struct soc_camera_format_xlate *xlate)
 {
@@ -172,6 +178,8 @@ static void configure_geometry(struct atmel_isi *isi, u32 width,
 
 	isi->enable_preview_path = (fourcc == V4L2_PIX_FMT_RGB565 ||
 				    fourcc == V4L2_PIX_FMT_RGB32);
+
+	isi->enable_preview_path = is_output_rgb(xlate->host_fmt);
 
 	/* According to sensor's output format to set cfg2 */
 	switch (xlate->code) {
@@ -227,12 +235,6 @@ static bool is_supported(struct soc_camera_device *icd,
 	default:
 		return false;
 	}
-}
-
-static bool is_output_rgb(const struct soc_mbus_pixelfmt *host_fmt)
-{
-	return host_fmt->fourcc == V4L2_PIX_FMT_RGB565 ||
-			host_fmt->fourcc == V4L2_PIX_FMT_RGB32;
 }
 
 static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer);
