@@ -223,6 +223,42 @@ static void configure_geometry(struct atmel_isi *isi, u32 width,
 	return;
 }
 
+static void isc_configure_geometry(struct atmel_isi *isc, u32 width,
+		u32 height, const struct soc_camera_format_xlate *xlate)
+{
+	/* According to sensor's output format to set cfg2 */
+	switch (xlate->code) {
+	/* YUV, including grey */
+	case MEDIA_BUS_FMT_Y8_1X8:
+	case MEDIA_BUS_FMT_VYUY8_2X8:
+	case MEDIA_BUS_FMT_UYVY8_2X8:
+	case MEDIA_BUS_FMT_YVYU8_2X8:
+	case MEDIA_BUS_FMT_YUYV8_2X8:
+	default:
+		isi_writel(isc, ISC_CFA_CTRL, 0);
+		isi_writel(isc, ISC_GAM_CTRL, 0);
+		isi_writel(isc, ISC_RLP_CFG, ISC_RLP_CFG_MODE_DAT8);
+		isi_writel(isc, ISC_DCFG, ISC_DCFG_IMODE_PACKED8);
+		break;
+	/* Bayer RGB */
+	case MEDIA_BUS_FMT_SBGGR8_1X8:
+		if (xlate->host_fmt->fourcc == V4L2_PIX_FMT_RGB565) {
+			isi_writel(isc, ISC_CFA_CTRL, 1);
+			isi_writel(isc, ISC_CFA_CFG, 3 | 1 << 4);
+			isi_writel(isc, ISC_GAM_CTRL, ISC_GAM_CTRL_ENABLE | ISC_GAM_CTRL_ENABLE_ALL_CHAN);
+			isi_writel(isc, ISC_RLP_CFG, ISC_RLP_CFG_MODE_RGB565);
+			isi_writel(isc, ISC_DCFG, ISC_DCFG_IMODE_PACKED16);
+		} else {
+			/* output to Bayer RGB */
+			isi_writel(isc, ISC_CFA_CTRL, 0);
+			isi_writel(isc, ISC_GAM_CTRL, 0);
+			isi_writel(isc, ISC_RLP_CFG, ISC_RLP_CFG_MODE_DAT8);
+			isi_writel(isc, ISC_DCFG, ISC_DCFG_IMODE_PACKED8);
+		}
+		break;
+	}
+}
+
 static bool is_supported(struct soc_camera_device *icd,
 		const u32 pixformat)
 {
@@ -1226,9 +1262,9 @@ static struct at91_camera_hw_ops at91sam9g45_ops = {
 
 static struct at91_camera_hw_ops sama5d2_ops = {
 	.hw_initialize = isc_hw_initialize,
+	.hw_uninitialize = isc_hw_uninitialize,
+	.hw_configure = isc_configure_geometry,
 	/*
-	.hw_uninitialize = isi_hw_uninitialize,
-	.hw_configure = configure_geometry,
 	.start_dma = start_dma,
 	.interrupt = isi_interrupt,
 	.init_dma_desc = isi_hw_init_dma_desc,
