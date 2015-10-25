@@ -126,6 +126,7 @@ struct at91_camera_hw_ops {
 	void (*hw_uninitialize)(struct atmel_isi *isi);
 	irqreturn_t (*interrupt)(int irq, void *dev_id);
 	void (*init_dma_desc)(union fbd *p_fdb, u32 fb_addr, u32 next_fbd_addr);
+	void (*hw_enable_interrupt)(struct atmel_isi *isi, int type);
 };
 
 static u32 setup_cfg2_yuv_swap(struct atmel_isi *isi,
@@ -353,7 +354,7 @@ static int atmel_isi_wait_status(struct atmel_isi *isi, int wait_reset)
 	 */
 	init_completion(&isi->complete);
 
-	isi_hw_enable_interrupt(isi, wait_reset);
+	(*isi->hw_ops->hw_enable_interrupt)(isi, wait_reset);
 
 	timeout = wait_for_completion_timeout(&isi->complete,
 			msecs_to_jiffies(500));
@@ -1276,6 +1277,7 @@ static struct at91_camera_hw_ops at91sam9g45_ops = {
 	.start_dma = start_dma,
 	.interrupt = isi_interrupt,
 	.init_dma_desc = isi_hw_init_dma_desc,
+	.hw_enable_interrupt = isi_hw_enable_interrupt,
 };
 
 static struct at91_camera_hw_ops sama5d2_ops = {
