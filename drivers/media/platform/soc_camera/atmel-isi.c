@@ -30,6 +30,7 @@
 #include <media/videobuf2-dma-contig.h>
 
 #include "atmel-isi.h"
+#include "atmel-isc.h"
 
 #define MAX_BUFFER_NUM			32
 #define MAX_SUPPORT_WIDTH		2048
@@ -533,6 +534,25 @@ static void isi_hw_uninitialize(struct atmel_isi *isi)
 	/* Disable interrupts */
 	isi_writel(isi, ISI_INTDIS,
 			ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
+}
+
+static void isc_hw_initialize(struct atmel_isi *isc)
+{
+	u32 pfe_cfg0 = 0;
+
+	if (isc->bus_param & V4L2_MBUS_HSYNC_ACTIVE_LOW)
+		pfe_cfg0 |= ISC_PFE_HSYNC_ACTIVE_LOW;
+	if (isc->bus_param & V4L2_MBUS_VSYNC_ACTIVE_LOW)
+		pfe_cfg0 |= ISC_PFE_VSYNC_ACTIVE_LOW;
+	if (isc->bus_param & V4L2_MBUS_PCLK_SAMPLE_FALLING)
+		pfe_cfg0 |= ISC_PFE_PIX_CLK_FALLING_EDGE;
+
+	pfe_cfg0 |= ISC_PFE_MODE_PROGRESSIVE | ISC_PFE_CONT_VIDEO;
+
+	/* TODO: need to revisit. */
+	pfe_cfg0 |= ISC_PFE_BPS_8_BIT;
+
+	isi_writel(isc, ISC_PFE_CFG0, pfe_cfg0);
 }
 
 static int start_streaming(struct vb2_queue *vq, unsigned int count)
@@ -1182,6 +1202,17 @@ static struct at91_camera_hw_ops at91sam9g45_ops = {
 	.init_dma_desc = isi_hw_init_dma_desc,
 };
 
+static struct at91_camera_hw_ops sama5d2_ops = {
+	.hw_initialize = isc_hw_initialize,
+	/*
+	.hw_uninitialize = isi_hw_uninitialize,
+	.hw_configure = configure_geometry,
+	.start_dma = start_dma,
+	.interrupt = isi_interrupt,
+	.init_dma_desc = isi_hw_init_dma_desc,
+	*/
+};
+
 static const struct dev_pm_ops atmel_isi_dev_pm_ops = {
 	SET_RUNTIME_PM_OPS(atmel_isi_runtime_suspend,
 				atmel_isi_runtime_resume, NULL)
@@ -1189,6 +1220,7 @@ static const struct dev_pm_ops atmel_isi_dev_pm_ops = {
 
 static const struct of_device_id atmel_isi_of_match[] = {
 	{ .compatible = "atmel,at91sam9g45-isi", .data = &at91sam9g45_ops },
+	{ .compatible = "atmel,sama5d2-isc", .data = &sama5d2_ops},
 	{ }
 };
 MODULE_DEVICE_TABLE(of, atmel_isi_of_match);
