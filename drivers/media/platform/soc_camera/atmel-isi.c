@@ -500,6 +500,20 @@ static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer,
 	isi_writel(isi, ISI_CTRL, ctrl);
 }
 
+static void isc_start_dma(struct atmel_isi *isc, struct frame_buffer *buffer,
+		bool enable_irq)
+{
+	if (enable_irq)
+		isi_writel(isc, ISC_INTEN, ISC_INT_DMA_DONE);
+
+	isi_writel(isc, ISC_DNDA, (u32)buffer->p_dma_desc->fbd_phys);
+	isi_writel(isc, ISC_DCTRL, ISC_DCTRL_DESC_ENABLE | ISC_DCTRL_DVIEW_PACKED |
+				ISC_DCTRL_DMA_DONE_INT_ENABLE | ISC_DCTRL_WRITE_BACK_ENABLE);
+	isi_writel(isc, ISC_DAD0, buffer->p_dma_desc->p_fbd->fbd_isc.fb_address);
+
+	isi_writel(isc, ISC_CTRLEN, ISC_CTRLEN_CAPTURE);
+}
+
 static void buffer_queue(struct vb2_buffer *vb)
 {
 	struct soc_camera_device *icd = soc_camera_from_vb2q(vb->vb2_queue);
@@ -1264,8 +1278,8 @@ static struct at91_camera_hw_ops sama5d2_ops = {
 	.hw_initialize = isc_hw_initialize,
 	.hw_uninitialize = isc_hw_uninitialize,
 	.hw_configure = isc_configure_geometry,
+	.start_dma = isc_start_dma,
 	/*
-	.start_dma = start_dma,
 	.interrupt = isi_interrupt,
 	.init_dma_desc = isi_hw_init_dma_desc,
 	*/
