@@ -127,6 +127,7 @@ struct at91_camera_hw_ops {
 	irqreturn_t (*interrupt)(int irq, void *dev_id);
 	void (*init_dma_desc)(union fbd *p_fdb, u32 fb_addr, u32 next_fbd_addr);
 	void (*hw_enable_interrupt)(struct atmel_isi *isi, int type);
+	void (*hw_set_clock)(struct atmel_isi *isi, bool enable_clk);
 };
 
 static u32 setup_cfg2_yuv_swap(struct atmel_isi *isi,
@@ -673,6 +674,16 @@ static void isc_hw_uninitialize(struct atmel_isi *isc)
 	isi_writel(isc, ISC_INTDIS, ISC_INT_DMA_DONE);
 }
 
+static void isc_hw_set_clock(struct atmel_isi *isc, bool enable_clk)
+{
+	if (enable_clk)
+		/* as the clock (ISC_MCK) is provided by peripheral clock, so just resume pm */
+		pm_runtime_get_sync(isc->soc_host.v4l2_dev.dev);
+	else
+		/* as the clock (ISC_MCK) is provided by peripheral clock, so just suspend pm */
+		pm_runtime_put(isc->soc_host.v4l2_dev.dev);
+}
+
 static int start_streaming(struct vb2_queue *vq, unsigned int count)
 {
 	struct soc_camera_device *icd = soc_camera_from_vb2q(vq);
@@ -1100,6 +1111,24 @@ static int isi_camera_set_parm(struct soc_camera_device *icd, struct v4l2_stream
 	return 0;
 }
 
+static int clock_start(struct soc_camera_host *ici)
+{
+	struct atmel_isi *isi = ici->priv;
+
+	if (isi->hw_ops->hw_set_clock)
+		(*isi->hw_ops->hw_set_clock)(isi, true);
+
+	return 0;
+}
+
+static void clock_stop(struct soc_camera_host *ici)
+{
+	struct atmel_isi *isi = ici->priv;
+
+	if (isi->hw_ops->hw_set_clock)
+		(*isi->hw_ops->hw_set_clock)(isi, false);
+}
+
 static struct soc_camera_host_ops isi_soc_camera_host_ops = {
 	.owner		= THIS_MODULE,
 	.add		= isi_camera_add_device,
@@ -1113,6 +1142,8 @@ static struct soc_camera_host_ops isi_soc_camera_host_ops = {
 	.set_bus_param	= isi_camera_set_bus_param,
 	.set_parm	= isi_camera_set_parm,
 	.get_parm	= isi_camera_set_parm,
+	.clock_start	= clock_start,
+	.clock_stop	= clock_stop,
 };
 
 /* -----------------------------------------------------------------------*/
@@ -1362,6 +1393,7 @@ static struct at91_camera_hw_ops sama5d2_ops = {
 	.init_dma_desc = isc_hw_init_dma_desc,
 	.interrupt = isc_interrupt,
 	.hw_enable_interrupt = isc_hw_enable_interrupt,
+	.hw_set_clock = isc_hw_set_clock,
 };
 
 static const struct dev_pm_ops atmel_isi_dev_pm_ops = {
