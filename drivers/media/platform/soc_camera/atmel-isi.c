@@ -557,6 +557,23 @@ static void isc_hw_initialize(struct atmel_isi *isc)
 	isi_writel(isc, ISC_PFE_CFG0, pfe_cfg0);
 }
 
+static void isc_hw_uninitialize(struct atmel_isi *isc)
+{
+	unsigned long timeout;
+
+	timeout = jiffies + FRAME_INTERVAL_MILLI_SEC * HZ;
+	/* Wait until the end of the current frame. */
+	while ((isi_readl(isc, ISC_CTRLSR) & ISC_CTRLSR_CAPTURE) && time_before(jiffies, timeout))
+		msleep(1);
+
+	if (time_after(jiffies, timeout))
+		dev_err(isc->soc_host.v4l2_dev.dev,
+			"Timeout waiting for finishing codec request\n");
+
+	/* Disable interrupts */
+	isi_writel(isc, ISC_INTDIS, ISC_INT_DMA_DONE);
+}
+
 static int start_streaming(struct vb2_queue *vq, unsigned int count)
 {
 	struct soc_camera_device *icd = soc_camera_from_vb2q(vq);
