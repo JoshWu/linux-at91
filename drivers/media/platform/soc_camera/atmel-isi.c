@@ -1179,6 +1179,32 @@ static int atmel_isi_parse_dt(struct atmel_isi *isi,
 	return 0;
 }
 
+static void isc_enable_clock(struct atmel_isi *isc)
+{
+	u32 cfg;
+
+	pm_runtime_get_sync(isc->soc_host.v4l2_dev.dev);
+
+	/*Config the MCK div and select it to isc_clk(hclock) */
+	cfg = ISC_CLKCFG_MCDIV(6) & ISC_CLKCFG_MCDIV_MASK;
+	cfg |= ISC_CLKCFG_MASTER_SEL_HCLOCK;
+
+	isi_writel(isc, ISC_CLKCFG, cfg);
+	while ((isi_readl(isc, ISC_CLKSR) & ISC_CLK_SIP) == ISC_CLK_SIP);
+		isi_writel(isc, ISC_CLKEN, ISC_CLK_MASTER);
+
+	/* keep original clock config */
+	cfg |= ISC_CLKCFG_ICDIV(5) & ISC_CLKCFG_ICDIV_MASK;
+	cfg |= ISC_CLKCFG_ISP_SEL_HCLOCK;
+
+	isi_writel(isc, ISC_CLKCFG, cfg);
+	while ((isi_readl(isc, ISC_CLKSR) & ISC_CLK_SIP) == ISC_CLK_SIP);
+	/* Enable isp clock */
+	isi_writel(isc, ISC_CLKEN, ISC_CLK_ISP);
+
+	pm_runtime_put(isc->soc_host.v4l2_dev.dev);
+}
+
 static const struct of_device_id atmel_isi_of_match[];
 static int atmel_isi_probe(struct platform_device *pdev)
 {
@@ -1272,6 +1298,10 @@ static int atmel_isi_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Unable to register soc camera host\n");
 		goto err_register_soc_camera_host;
 	}
+
+	if (of_device_is_compatible(pdev->dev.of_node, "atmel,sama5d2-isc"))
+		isc_enable_clock(isi);
+
 	return 0;
 
 err_register_soc_camera_host:
