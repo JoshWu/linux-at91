@@ -347,6 +347,17 @@ static void isi_hw_enable_interrupt(struct atmel_isi *isi, int type)
 	}
 }
 
+static void isc_hw_enable_interrupt(struct atmel_isi *isc, int type)
+{
+	if (type == WAIT_HW_RESET) {
+		isi_writel(isc, ISC_INTEN, ISC_INT_SWRST_COMPLETE);
+		isi_writel(isc, ISC_CTRLDIS, ISC_CTRLDIS_SWRST);
+	} else {
+		isi_writel(isc, ISC_INTEN, ISC_INT_DISABLE_COMPLETE);
+		isi_writel(isc, ISC_CTRLDIS, ISC_CTRLDIS_CAPTURE);
+	}
+}
+
 static int atmel_isi_wait_status(struct atmel_isi *isi, int wait_reset)
 {
 	unsigned long timeout;
@@ -1294,6 +1305,7 @@ static struct at91_camera_hw_ops sama5d2_ops = {
 	/*
 	.interrupt = isi_interrupt,
 	*/
+	.hw_enable_interrupt = isc_hw_enable_interrupt,
 };
 
 static const struct dev_pm_ops atmel_isi_dev_pm_ops = {
