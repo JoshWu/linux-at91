@@ -334,6 +334,34 @@ static irqreturn_t isi_interrupt(int irq, void *dev_id)
 	return ret;
 }
 
+static irqreturn_t isc_interrupt(int irq, void *dev_id)
+{
+	struct atmel_isi *isc = dev_id;
+	u32 status, mask, pending;
+	irqreturn_t ret = IRQ_NONE;
+
+	spin_lock(&isc->lock);
+
+	status = isi_readl(isc, ISC_INTSR);
+	mask = isi_readl(isc, ISC_INTMASK);
+	pending = status & mask;
+
+	if (pending & ISC_INT_SWRST_COMPLETE) {
+		complete(&isc->complete);
+		isi_writel(isc, ISC_INTEN, ISC_INT_SWRST_COMPLETE);
+		ret = IRQ_HANDLED;
+	} else if (pending & ISC_INT_DISABLE_COMPLETE) {
+		complete(&isc->complete);
+		isi_writel(isc, ISC_INTEN, ISC_INT_DISABLE_COMPLETE);
+		ret = IRQ_HANDLED;
+	} else if (likely(pending & ISC_INT_DMA_DONE)) {
+		ret = atmel_isi_handle_streaming(isc);
+	}
+
+	spin_unlock(&isc->lock);
+	return ret;
+}
+
 #define	WAIT_HW_RESET		1
 #define	WAIT_HW_DISABLE		0
 static void isi_hw_enable_interrupt(struct atmel_isi *isi, int type)
@@ -1302,9 +1330,7 @@ static struct at91_camera_hw_ops sama5d2_ops = {
 	.hw_configure = isc_configure_geometry,
 	.start_dma = isc_start_dma,
 	.init_dma_desc = isc_hw_init_dma_desc,
-	/*
-	.interrupt = isi_interrupt,
-	*/
+	.interrupt = isc_interrupt,
 	.hw_enable_interrupt = isc_hw_enable_interrupt,
 };
 
