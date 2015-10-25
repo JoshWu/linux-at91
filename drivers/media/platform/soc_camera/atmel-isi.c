@@ -414,6 +414,15 @@ static void isi_hw_init_dma_desc(union fbd *p_fdb, u32 fb_addr, u32 next_fbd_add
 	p->dma_ctrl = ISI_DMA_CTRL_WB;
 }
 
+static void isc_hw_init_dma_desc(union fbd *p_fbd, u32 fb_addr, u32 next_fbd_addr)
+{
+	struct fbd_view *p = &(p_fbd->fbd_isc);
+	p->fb_address = fb_addr;
+	p->next_fbd_address = 0;
+	p->fb_stride = 0;
+	p->dma_ctrl = ISC_DCTRL_DESC_ENABLE | ISC_DCTRL_DVIEW_PACKED;
+}
+
 static int buffer_prepare(struct vb2_buffer *vb)
 {
 	struct soc_camera_device *icd = soc_camera_from_vb2q(vb->vb2_queue);
@@ -1274,9 +1283,9 @@ static struct at91_camera_hw_ops sama5d2_ops = {
 	.hw_uninitialize = isc_hw_uninitialize,
 	.hw_configure = isc_configure_geometry,
 	.start_dma = isc_start_dma,
+	.init_dma_desc = isc_hw_init_dma_desc,
 	/*
 	.interrupt = isi_interrupt,
-	.init_dma_desc = isi_hw_init_dma_desc,
 	*/
 };
 
