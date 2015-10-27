@@ -40,6 +40,8 @@
 #include <media/videobuf-core.h>
 #include <media/videobuf2-core.h>
 
+#define dev_dbg dev_err
+
 /* Default to VGA resolution */
 #define DEFAULT_WIDTH	640
 #define DEFAULT_HEIGHT	480
@@ -1996,6 +1998,7 @@ int soc_camera_host_register(struct soc_camera_host *ici)
 	mutex_init(&ici->host_lock);
 	mutex_init(&ici->clk_lock);
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	if (ici->v4l2_dev.dev->of_node)
 		scan_of_host(ici);
 	else if (ici->asd_sizes)
@@ -2009,6 +2012,7 @@ int soc_camera_host_register(struct soc_camera_host *ici)
 		/* Legacy: static platform devices from board data */
 		scan_add_host(ici);
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	return 0;
 
 edevreg:

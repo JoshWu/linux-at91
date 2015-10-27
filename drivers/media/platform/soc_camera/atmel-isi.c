@@ -1221,10 +1221,12 @@ static void isc_enable_clock(struct atmel_isi *isc)
 
 	pm_runtime_get_sync(isc->soc_host.v4l2_dev.dev);
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	/*Config the MCK div and select it to isc_clk(hclock) */
 	cfg = ISC_CLKCFG_MCDIV(6) & ISC_CLKCFG_MCDIV_MASK;
 	cfg |= ISC_CLKCFG_MASTER_SEL_HCLOCK;
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	isi_writel(isc, ISC_CLKCFG, cfg);
 	while ((isi_readl(isc, ISC_CLKSR) & ISC_CLK_SIP) == ISC_CLK_SIP);
 		isi_writel(isc, ISC_CLKEN, ISC_CLK_MASTER);
@@ -1233,11 +1235,13 @@ static void isc_enable_clock(struct atmel_isi *isc)
 	cfg |= ISC_CLKCFG_ICDIV(5) & ISC_CLKCFG_ICDIV_MASK;
 	cfg |= ISC_CLKCFG_ISP_SEL_HCLOCK;
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	isi_writel(isc, ISC_CLKCFG, cfg);
 	while ((isi_readl(isc, ISC_CLKSR) & ISC_CLK_SIP) == ISC_CLK_SIP);
 	/* Enable isp clock */
 	isi_writel(isc, ISC_CLKEN, ISC_CLK_ISP);
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	pm_runtime_put(isc->soc_host.v4l2_dev.dev);
 }
 
@@ -1249,6 +1253,8 @@ static int atmel_isi_probe(struct platform_device *pdev)
 	struct resource *regs;
 	int ret, i;
 	struct soc_camera_host *soc_host;
+
+	pr_info("%s: %d\n", __func__, __LINE__);
 
 	isi = devm_kzalloc(&pdev->dev, sizeof(struct atmel_isi), GFP_KERNEL);
 	if (!isi) {
@@ -1329,15 +1335,18 @@ static int atmel_isi_probe(struct platform_device *pdev)
 	pm_suspend_ignore_children(&pdev->dev, true);
 	pm_runtime_enable(&pdev->dev);
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	ret = soc_camera_host_register(soc_host);
 	if (ret) {
 		dev_err(&pdev->dev, "Unable to register soc camera host\n");
 		goto err_register_soc_camera_host;
 	}
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	if (of_device_is_compatible(pdev->dev.of_node, "atmel,sama5d2-isc"))
 		isc_enable_clock(isi);
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	return 0;
 
 err_register_soc_camera_host:
