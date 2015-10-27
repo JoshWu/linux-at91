@@ -296,7 +296,7 @@
 			uart3: serial@fc008000 {
 				pinctrl-names = "default";
 				pinctrl-0 = <&pinctrl_uart3_default>;
-				status = "okay";
+				status = "disabled";
 			};
 
 			flx4: flexcom@fc018000 {
