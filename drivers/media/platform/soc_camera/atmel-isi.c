@@ -97,6 +97,9 @@ struct atmel_isi {
 	struct completion		complete;
 	/* ISI peripherial clock */
 	struct clk			*pclk;
+	/* ISC clock */
+	struct clk			*iscck;
+
 	unsigned int			irq;
 
 	struct isi_platform_data	pdata;
@@ -1255,6 +1258,10 @@ static int atmel_isi_probe(struct platform_device *pdev)
 	if (IS_ERR(isi->pclk))
 		return PTR_ERR(isi->pclk);
 
+	isi->iscck = devm_clk_get(&pdev->dev, "iscck");
+	if (IS_ERR(isi->iscck))
+		isi->iscck = NULL;
+
 	ret = atmel_isi_parse_dt(isi, pdev);
 	if (ret)
 		return ret;
@@ -1356,6 +1363,8 @@ static int atmel_isi_runtime_suspend(struct device *dev)
 	struct atmel_isi *isi = container_of(soc_host,
 					struct atmel_isi, soc_host);
 
+	if (isi->iscck)
+		clk_disable_unprepare(isi->iscck);
 	clk_disable_unprepare(isi->pclk);
 
 	return 0;
@@ -1366,6 +1375,8 @@ static int atmel_isi_runtime_resume(struct device *dev)
 	struct atmel_isi *isi = container_of(soc_host,
 					struct atmel_isi, soc_host);
 
+	if (isi->iscck)
+		clk_prepare_enable(isi->iscck);
 	return clk_prepare_enable(isi->pclk);
 }
 #endif /* CONFIG_PM */
