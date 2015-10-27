@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011 Atmel Corporation
+ * Copyright (c) 2015 Atmel Corporation
  * Josh Wu, <josh.wu@atmel.com>
  *
  * Based on previous work by Lars Haring, <lars.haring@atmel.com>
