@@ -1064,10 +1064,12 @@ static int ov2640_video_probe(struct i2c_client *client)
 	const char *devname;
 	int ret;
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	ret = ov2640_s_power(&priv->subdev, 1);
 	if (ret < 0)
 		return ret;
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	/*
 	 * check and show product ID and manufacturer ID
 	 */
@@ -1231,10 +1233,12 @@ static int ov2640_probe(struct i2c_client *client,
 		return -ENOMEM;
 	}
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	priv->clk = v4l2_clk_get(&client->dev, "xvclk");
 	if (IS_ERR(priv->clk))
 		return -EPROBE_DEFER;
 
+	pr_info("%s: %d\n", __func__, __LINE__);
 	if (!ssdd && !client->dev.of_node) {
 		dev_err(&client->dev, "Missing platform_data for driver\n");
 		ret = -EINVAL;
