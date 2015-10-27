@@ -416,6 +416,16 @@
 					};
 				};
 
+				pinctrl_sensor_power: sensor_power {
+					pinmux = <PIN_PB12__GPIO>;
+					bias-disable;
+				};
+
+				pinctrl_sensor_reset: sensor_reset {
+					pinmux = <PIN_PB11__GPIO>;
+					bias-disable;
+				};
+
 				pinctrl_spi0_default: spi0_default {
 					pinmux = <PIN_PA14__SPI0_SPCK>,
 						 <PIN_PA15__SPI0_MOSI>,
