@@ -1233,8 +1233,8 @@ static int ov2640_probe(struct i2c_client *client,
 			"Failed to allocate memory for private data!\n");
 		return -ENOMEM;
 	}
-
-	pr_info("%s: %d\n", __func__, __LINE__);
+	
+	pr_info("%s: %d - of-%s\n", __func__, __LINE__, of_node_full_name(client->dev.of_node));
 	priv->clk = v4l2_clk_get(&client->dev, "xvclk");
 	if (IS_ERR(priv->clk))
 		return -EPROBE_DEFER;
