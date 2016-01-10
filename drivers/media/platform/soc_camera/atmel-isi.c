@@ -245,24 +245,6 @@ static int isi_hw_initialize(struct atmel_isi *isi)
 	return 0;
 }
 
-static bool is_supported(struct soc_camera_device *icd,
-		const u32 pixformat)
-{
-	switch (pixformat) {
-	/* YUV, including grey */
-	case V4L2_PIX_FMT_GREY:
-	case V4L2_PIX_FMT_YUYV:
-	case V4L2_PIX_FMT_UYVY:
-	case V4L2_PIX_FMT_YVYU:
-	case V4L2_PIX_FMT_VYUY:
-	/* RGB */
-	case V4L2_PIX_FMT_RGB565:
-		return true;
-	default:
-		return false;
-	}
-}
-
 static irqreturn_t atmel_isi_handle_streaming(struct atmel_isi *isi)
 {
 	if (isi->active) {
@@ -574,6 +556,24 @@ static int isi_camera_init_videobuf(struct vb2_queue *q,
 	q->lock = &ici->host_lock;
 
 	return vb2_queue_init(q);
+}
+
+static bool is_supported(struct soc_camera_device *icd,
+		const u32 pixformat)
+{
+	switch (pixformat) {
+	/* YUV, including grey */
+	case V4L2_PIX_FMT_GREY:
+	case V4L2_PIX_FMT_YUYV:
+	case V4L2_PIX_FMT_UYVY:
+	case V4L2_PIX_FMT_YVYU:
+	case V4L2_PIX_FMT_VYUY:
+	/* RGB */
+	case V4L2_PIX_FMT_RGB565:
+		return true;
+	default:
+		return false;
+	}
 }
 
 static int try_or_set_fmt(struct soc_camera_device *icd,
