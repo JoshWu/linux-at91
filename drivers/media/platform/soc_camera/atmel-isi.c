@@ -263,19 +263,7 @@ static irqreturn_t atmel_isi_handle_streaming(struct atmel_isi *isi)
 		/* start next dma frame. */
 		isi->active = list_entry(isi->video_buffer_list.next,
 					struct frame_buffer, list);
-		if (!isi->enable_preview_path) {
-			isi_writel(isi, ISI_DMA_C_DSCR,
-				(u32)isi->active->p_dma_desc->fbd_phys);
-			isi_writel(isi, ISI_DMA_C_CTRL,
-				ISI_DMA_CTRL_FETCH | ISI_DMA_CTRL_DONE);
-			isi_writel(isi, ISI_DMA_CHER, ISI_DMA_CHSR_C_CH);
-		} else {
-			isi_writel(isi, ISI_DMA_P_DSCR,
-				(u32)isi->active->p_dma_desc->fbd_phys);
-			isi_writel(isi, ISI_DMA_P_CTRL,
-				ISI_DMA_CTRL_FETCH | ISI_DMA_CTRL_DONE);
-			isi_writel(isi, ISI_DMA_CHER, ISI_DMA_CHSR_P_CH);
-		}
+		start_dma(isi, isi->active, false);
 	}
 	return IRQ_HANDLED;
 }
