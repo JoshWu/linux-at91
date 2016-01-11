@@ -245,6 +245,43 @@ static int isi_hw_initialize(struct atmel_isi *isi)
 	return 0;
 }
 
+static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer,
+		      bool enable_irq)
+{
+	u32 ctrl;
+
+	/* Check if already in a frame */
+	if (!isi->enable_preview_path) {
+		if (isi_readl(isi, ISI_STATUS) & ISI_CTRL_CDC) {
+			dev_err(isi->soc_host.icd->parent, "Already in frame handling.\n");
+			return;
+		}
+
+		isi_writel(isi, ISI_DMA_C_DSCR,
+				(u32)buffer->p_dma_desc->fbd_phys);
+		isi_writel(isi, ISI_DMA_C_CTRL,
+				ISI_DMA_CTRL_FETCH | ISI_DMA_CTRL_DONE);
+		isi_writel(isi, ISI_DMA_CHER, ISI_DMA_CHSR_C_CH);
+	} else {
+		isi_writel(isi, ISI_DMA_P_DSCR,
+				(u32)buffer->p_dma_desc->fbd_phys);
+		isi_writel(isi, ISI_DMA_P_CTRL,
+				ISI_DMA_CTRL_FETCH | ISI_DMA_CTRL_DONE);
+		isi_writel(isi, ISI_DMA_CHER, ISI_DMA_CHSR_P_CH);
+	}
+
+	if (enable_irq) {
+		/* cxfr for the codec path, pxfr for the preview path */
+		isi_writel(isi, ISI_INTEN,
+			   ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
+
+		/* Enable ISI */
+		ctrl = ISI_CTRL_EN |
+		       (isi->enable_preview_path ? 0 : ISI_CTRL_CDC);
+		isi_writel(isi, ISI_CTRL, ctrl);
+	}
+}
+
 static irqreturn_t atmel_isi_handle_streaming(struct atmel_isi *isi)
 {
 	if (isi->active) {
@@ -387,43 +424,6 @@ static void buffer_cleanup(struct vb2_buffer *vb)
 	/* This descriptor is available now and we add to head list */
 	if (buf->p_dma_desc)
 		list_add(&buf->p_dma_desc->list, &isi->dma_desc_head);
-}
-
-static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer,
-		      bool enable_irq)
-{
-	u32 ctrl;
-
-	/* Check if already in a frame */
-	if (!isi->enable_preview_path) {
-		if (isi_readl(isi, ISI_STATUS) & ISI_CTRL_CDC) {
-			dev_err(isi->soc_host.icd->parent, "Already in frame handling.\n");
-			return;
-		}
-
-		isi_writel(isi, ISI_DMA_C_DSCR,
-				(u32)buffer->p_dma_desc->fbd_phys);
-		isi_writel(isi, ISI_DMA_C_CTRL,
-				ISI_DMA_CTRL_FETCH | ISI_DMA_CTRL_DONE);
-		isi_writel(isi, ISI_DMA_CHER, ISI_DMA_CHSR_C_CH);
-	} else {
-		isi_writel(isi, ISI_DMA_P_DSCR,
-				(u32)buffer->p_dma_desc->fbd_phys);
-		isi_writel(isi, ISI_DMA_P_CTRL,
-				ISI_DMA_CTRL_FETCH | ISI_DMA_CTRL_DONE);
-		isi_writel(isi, ISI_DMA_CHER, ISI_DMA_CHSR_P_CH);
-	}
-
-	if (enable_irq) {
-		/* cxfr for the codec path, pxfr for the preview path */
-		isi_writel(isi, ISI_INTEN,
-			   ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
-
-		/* Enable ISI */
-		ctrl = ISI_CTRL_EN |
-		       (isi->enable_preview_path ? 0 : ISI_CTRL_CDC);
-		isi_writel(isi, ISI_CTRL, ctrl);
-	}
 }
 
 static void buffer_queue(struct vb2_buffer *vb)
