@@ -401,13 +401,10 @@ static void buffer_cleanup(struct vb2_buffer *vb)
 		list_add(&buf->p_dma_desc->list, &isi->dma_desc_head);
 }
 
-static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer)
+static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer,
+		      bool enable_irq)
 {
 	u32 ctrl;
-
-	/* Enable irq: cxfr for the codec path, pxfr for the preview path */
-	isi_writel(isi, ISI_INTEN,
-			ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
 
 	/* Check if already in a frame */
 	if (!isi->enable_preview_path) {
@@ -429,13 +426,16 @@ static void start_dma(struct atmel_isi *isi, struct frame_buffer *buffer)
 		isi_writel(isi, ISI_DMA_CHER, ISI_DMA_CHSR_P_CH);
 	}
 
-	/* Enable ISI */
-	ctrl = ISI_CTRL_EN;
+	if (enable_irq) {
+		/* cxfr for the codec path, pxfr for the preview path */
+		isi_writel(isi, ISI_INTEN,
+			   ISI_SR_CXFR_DONE | ISI_SR_PXFR_DONE);
 
-	if (!isi->enable_preview_path)
-		ctrl |= ISI_CTRL_CDC;
-
-	isi_writel(isi, ISI_CTRL, ctrl);
+		/* Enable ISI */
+		ctrl = ISI_CTRL_EN |
+		       (isi->enable_preview_path ? 0 : ISI_CTRL_CDC);
+		isi_writel(isi, ISI_CTRL, ctrl);
+	}
 }
 
 static void buffer_queue(struct vb2_buffer *vb)
@@ -453,7 +453,7 @@ static void buffer_queue(struct vb2_buffer *vb)
 	if (isi->active == NULL) {
 		isi->active = buf;
 		if (vb2_is_streaming(vb->vb2_queue))
-			start_dma(isi, buf);
+			start_dma(isi, buf, false);
 	}
 	spin_unlock_irqrestore(&isi->lock, flags);
 }
@@ -479,7 +479,7 @@ static int start_streaming(struct vb2_queue *vq, unsigned int count)
 	spin_lock_irq(&isi->lock);
 
 	if (count)
-		start_dma(isi, isi->active);
+		start_dma(isi, isi->active, true);
 	spin_unlock_irq(&isi->lock);
 
 	return 0;
